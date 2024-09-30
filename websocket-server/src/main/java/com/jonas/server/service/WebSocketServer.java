@@ -1,5 +1,7 @@
 package com.jonas.server.service;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.jonas.server.proto.HelloProto;
 import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
@@ -62,11 +64,21 @@ public class WebSocketServer {
      * @param message 客户端发送过来的消息
      */
     @OnMessage
-    public void onMessage(String message, Session session) {
+    public void onMessage(byte[] message, Session session) {
         WebSocketSession webSocketSession = getWebSocketBySession(session);
         if (webSocketSession != null) {
             log.info("用户消息:{}, 报文:{}", webSocketSession.getUserId(), message);
-            sendMessage(webSocketSession.getUserId(), message);
+            // 反序列化Protobuf消息
+            try {
+                HelloProto.Hello hello = HelloProto.Hello.parseFrom(message);
+                if (hello != null) {
+                    log.info("message id:{}, code:{}, name:{}", hello.getId(), hello.getCode(), hello.getName());
+                } else {
+                    log.info("message is null");
+                }
+            } catch (InvalidProtocolBufferException e) {
+                log.error("parse message error", e);
+            }
         }
     }
 
